@@ -86,16 +86,11 @@ int init(FrameBuffer* gfb) {
 
 static
 void loop() {
-	int endFlag = 0;
 	printf("'q' is Quit\n");
-	while (!endFlag) {
+	while (1) {
 		usleep(10*1000);
-		if (kbhit()) {
-			switch ( getchar() ) {
-				case 'q': endFlag = 1;
-					break;
-			}
-		}
+		if (!kbhit()) continue;
+		if (getchar() == 'q') break;
 	}
 }
 
@@ -109,8 +104,10 @@ void deinit(FrameBuffer* gfb) {
 
 }
 
+
+#if 0 // rect
 static
-void test1() { // ract
+void test() { 
     Painter painter;
 	FrameBuffer gfb;
 
@@ -118,14 +115,16 @@ void test1() { // ract
 	painter_init(&painter, &gfb);
 
 	/* draw */
-	painter_draw_ract(&painter, 100, 50, 100, 50, 0xFFFFFFFF);
+	painter_draw_rect(&painter, 100, 50, 100, 50, 0xFFFFFFFF);
 
 	loop();
 	deinit(&gfb);
 }
+#endif
 
+#if 0 // translate
 static
-void test2() { // translate
+void test() { 
     Painter painter;
 	FrameBuffer gfb;
 
@@ -140,9 +139,11 @@ void test2() { // translate
 	loop();
 	deinit(&gfb);
 }
+#endif
 
+#if 0 // line
 static
-void test3() { // line
+void test() {
     Painter painter;
 	FrameBuffer gfb;
 
@@ -168,9 +169,11 @@ void test3() { // line
 	loop();
 	deinit(&gfb);
 }
+#endif
 
+#if 1 // font
 static
-void test4() { // font
+void test() {
     Painter painter;
 	FrameBuffer gfb;
 
@@ -182,15 +185,16 @@ void test4() { // font
 	ssize_t y = painter_get_height(&painter) / 2;
 	painter_translate(&painter, x, y);
 
-	painter_draw_font(&painter, 0, 0, 'A', 0xFF0000FF, 0x00000000);
+	painter_draw_font(&painter, 0, 0, 'A', 0xFFFFFFFF, 0x00000000);
 
 	loop();
 	deinit(&gfb);
 }
+#endif
 
 int main() {
 
-    test4();
+    test();
 
 	return 0;
 }

@@ -13,9 +13,11 @@
 
 static inline
 void drawpixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
-	ssize_t xloc = painter->loc.x;
-	ssize_t yloc = painter->loc.y;
-	ssize_t width = painter->fb->var.xres;
+	// if (painter_check_oob(painter, x, y)) return;
+	
+	ssize_t xloc = painter->sys.x;
+	ssize_t yloc = painter->sys.y;
+	ssize_t width = painter->fb->var.xres; // real width
 	// ssize_t height = painter->fb->var.yres;
 
 	uint32_t* buf = painter->fb->start;
@@ -23,39 +25,34 @@ void drawpixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
 	buf[((yloc + y) * width) + (xloc + x)] = color;
 }
 
-// location ==============================================================
-
-static inline
-void loc_init(Location* loc) {
-    memset(loc, 0, sizeof(Location));
-}
-
-static inline
-void loc_translate(Location* loc, ssize_t x, ssize_t y) {
-    loc->x += x;
-    loc->y += y;
-}
-
 // painter =============================================================
 
 /* coordinate manipulation */
 
 void painter_init(Painter* painter, FrameBuffer* fb) {
-	loc_init(&painter->loc);
 	painter->fb = fb;
+
+	painter->sys.x = 0;
+	painter->sys.y = 0;
+	painter->sys.xsz = painter->fb->var.xres;
+	painter->sys.ysz = painter->fb->var.yres / 2; // TODO
+}
+
+void painter_copy(Painter* dst, Painter* src) {
+	*dst = *src;
 }
 
 void painter_translate(Painter* painter, ssize_t x, ssize_t y) {
-	loc_translate(&painter->loc, x, y);
+	painter->sys.x += x;
+	painter->sys.y += y;
 }
 
 /* draw */
-
 void painter_draw_pixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
 	drawpixel(painter, x, y, color);
 }
 
-void painter_draw_ract(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
+void painter_draw_rect(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
 	ssize_t i, j;
 
 	for (i = 0; i < ysz; ++i) {
@@ -100,16 +97,9 @@ void painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssi
 	}
 }
 
-// void drawText(FrameBuffer *gfb, int x, int y, char *msg, unsigned int color, unsigned int bgcolor)
-// {
-//     while (*msg) {
-// 		drawFont(gfb, x, y, *msg++, color, bgcolor);
-// 		x += 8;
-// 	}
-// }
-
 void painter_draw_font(Painter* painter, ssize_t x, ssize_t y, char ch, uint32_t color, uint32_t bgcolor) {
-	unsigned char *font = fontdata_8x16 + 16 * (unsigned char)ch;
+	// unsigned char *font = fontdata_8x16 + 16 * (unsigned char)ch;
+	unsigned char *font = fontdata_8x16[(unsigned char)ch];
 	ssize_t r, c;
 
 	for (r = 0; r < 16; r++) {
@@ -118,6 +108,7 @@ void painter_draw_font(Painter* painter, ssize_t x, ssize_t y, char ch, uint32_t
 		}
 	}
 }
+
 // void draw_circle(unsigned int (*buf)[1280], int x, int y, int r, unsigned int color) {
 // 	int i, j;
 // 	for (i = 0; i < r * 2; i++) {
@@ -128,3 +119,22 @@ void painter_draw_font(Painter* painter, ssize_t x, ssize_t y, char ch, uint32_t
 // 		}
 // 	}
 // }
+
+// texter ======================================================================
+
+void texter_init(Texter* texter, Painter* painter) {
+	texter->painter = painter;
+
+	texter->cur.r = 0;
+	texter->cur.c = 0;
+}
+
+void texter_set_cursor(Texter* texter, ssize_t row, ssize_t col) {
+	texter->cur.r = row;
+	texter->cur.c = col;
+}
+
+void texter_move_cursor(Texter* texter, ssize_t row, ssize_t col) {
+	texter->cur.r += row;
+	texter->cur.c += col;
+}

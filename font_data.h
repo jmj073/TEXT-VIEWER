@@ -1,10 +1,8 @@
 #ifndef _FONT_DATA_H_
 #define _FONT_DATA_H_
 
-#define FONT_DATA_SIZE 4096
-
 static
-unsigned char fontdata_8x16[FONT_DATA_SIZE] = {
+unsigned char fontdata_8x16[256][16] = {
 
 	/* 0 0x00 '^@' */
 	0x00, /* 00000000 */
