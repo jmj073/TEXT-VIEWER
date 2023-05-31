@@ -117,7 +117,7 @@ int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssiz
 		for (i = 0; i < ysz; i++) {
 			__painter_drawpixel(painter, x1, i + y1, color);
 		}
-		return;
+		return 1;
 	}
 	
 	ssize_t x = 0, y = 0;
@@ -248,8 +248,17 @@ int texter_move_cursor(Texter* texter, size_t row, size_t col) {
 }
 
 int texter_putc(Texter* texter, char c) {
-    if (!texter_drawc(texter, c)) return 0;
-    __cursor_next(texter);
+	switch(c) {
+		case '\n': // line feed
+			++texter->cur.r; // TODO 개선
+			// no break
+		case '\r': // carriage return
+			texter->cur.c = 0;
+			break;
+		default:
+			if (!texter_drawc(texter, c)) return 0;
+			__cursor_next(texter);
+	}
 	return 1;
 }
 

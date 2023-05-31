@@ -82,7 +82,7 @@ int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssiz
 int texter_init(Texter* texter, Binder* binder);
 
 static inline
-Painter* texter_get_binder(Texter* texter) {
+Binder* texter_get_binder(Texter* texter) {
     return texter->binder;
 }
 
@@ -117,6 +117,18 @@ int texter_set_background_color(Texter* texter, uint32_t color) {
 static inline
 uint32_t texter_get_background_color(const Texter* texter) {
     return texter->background_color;
+}
+
+static inline
+uint8_t texter_get_auto_newline(const Texter* texter) {
+    if (!texter) return 0;
+    return texter->auto_newline;
+}
+static inline
+int texter_set_auto_newline(Texter* texter, uint8_t auto_newline) {
+    if (!texter) return 0;
+    texter->auto_newline = auto_newline;
+    return 1;
 }
 
 int texter_putc(Texter* texter, char c); // return: refer to fputc(3)

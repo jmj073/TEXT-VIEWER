@@ -59,7 +59,7 @@ int init(FrameBuffer* gfb) {
 	if(ret < 0){
 		printf("Framebuffer open error");
 		perror("");
-		return -1;
+		return 0;
 	}
 
 	// get physical framebuffer address for LCD
@@ -81,7 +81,7 @@ int init(FrameBuffer* gfb) {
 	//Clear Screen(Black)
 	memset(pos, 0x00, 1280*720*4);
 
-	return 0;
+	return 1;
 }
 
 static
@@ -192,9 +192,41 @@ void test() {
 }
 #endif
 
+static
+void test() { // texter bind test
+	FrameBuffer fb;
+	if (!init(&fb)) {
+		puts("framebuffer init error");
+		return;
+	}
+
+	Binder binder;
+	if (!binder_init(&binder, &fb, 100, 100, 84, 56)) {
+		puts("binder init error");
+		return;
+	}
+
+	Texter texter;
+	if (!texter_init(&texter, &binder)) {
+		puts("texter init error");
+		return;
+	}
+	// texter_set_auto_newline(&texter, 0);
+
+	ssize_t cnt = texter_puts(&texter, "hello, world! hi foo bar dsfdffdfdffsfsddsfdfdfd");
+	if (cnt < 0) {
+		puts("texter puts error!");
+	} else {
+		printf("cnt: %zd\n", cnt);
+	}
+
+	loop();
+	deinit(&fb);
+}
+
 int main() {
 
-    // test();
+    test();
 
 	return 0;
 }
