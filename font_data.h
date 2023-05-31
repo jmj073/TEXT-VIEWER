@@ -1,6 +1,9 @@
 #ifndef _FONT_DATA_H_
 #define _FONT_DATA_H_
 
+#define FONT_WIDTH 8
+#define FONT_HEIGHT 16
+
 static
 unsigned char fontdata_8x16[256][16] = {
 

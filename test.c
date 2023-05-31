@@ -171,7 +171,7 @@ void test() {
 }
 #endif
 
-#if 1 // font
+#if 0 // font
 static
 void test() {
     Painter painter;
@@ -194,7 +194,7 @@ void test() {
 
 int main() {
 
-    test();
+    // test();
 
 	return 0;
 }

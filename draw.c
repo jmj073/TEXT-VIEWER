@@ -11,63 +11,111 @@
 	(void)0;\
 })
 
-static inline
-void drawpixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
-	// if (painter_check_oob(painter, x, y)) return;
-	
-	ssize_t xloc = painter->sys.x;
-	ssize_t yloc = painter->sys.y;
-	ssize_t width = painter->fb->var.xres; // real width
-	// ssize_t height = painter->fb->var.yres;
+// binder ==============================================================================
 
-	uint32_t* buf = painter->fb->start;
+/**
+ * @brief 
+ * 
+ * @param canvas 
+ * @param fb 
+ * @param x 
+ * @param y 
+ * @param width If 0, the default value is used
+ * @param height If 0, the default value is used
+ * @return int success: 1, fail: 0
+ */
+int binder_init(Binder* binder, FrameBuffer* fb, size_t origin_x, size_t origin_y, size_t width, size_t height) {
+	if (!binder || !fb) return 0;
 
-	buf[((yloc + y) * width) + (xloc + x)] = color;
+	binder->fb = fb;
+	binder->x = origin_x;
+	binder->y = origin_y;
+
+	if (!binder_set_width(binder, width ?: fb->var.xres)) return 0;
+	if (!binder_set_height(binder, height ?: fb->var.yres / 2)) return 0;
+
+	return 1;
 }
 
-// painter =============================================================
+static inline
+int __binder_oob(const Binder* binder, size_t x, size_t y) {
+	return x >= binder->width || x + binder->x >= binder->fb->var.xres
+		|| y >= binder->height || y + binder->y >= binder->fb->var.yres / 2;
+}
 
-/* coordinate manipulation */
+static inline
+int __binder_draw_pixel(Binder* binder, size_t x, size_t y, uint32_t color) {
+	if (__binder_oob(binder, x, y)) return 0;
 
-void painter_init(Painter* painter, FrameBuffer* fb) {
-	painter->fb = fb;
+	ssize_t xloc = binder->x;
+	ssize_t yloc = binder->y;
+	ssize_t width = binder->fb->var.xres; // real width
+	// ssize_t height = painter->fb->var.yres;
+
+	uint32_t* buf = binder->fb->start;
+	
+	buf[((yloc + y) * width) + (xloc + x)] = color;
+
+	return 1;
+}
+
+// painter ==============================================================================
+
+int painter_init(Painter* painter, Binder* binder) {
+	if (!painter || !binder) return 0;
+
+	painter->binder = binder;
 
 	painter->sys.x = 0;
 	painter->sys.y = 0;
-	painter->sys.xsz = painter->fb->var.xres;
-	painter->sys.ysz = painter->fb->var.yres / 2; // TODO
+
+	return 1;
 }
 
 void painter_copy(Painter* dst, Painter* src) {
 	*dst = *src;
 }
 
-void painter_translate(Painter* painter, ssize_t x, ssize_t y) {
+static inline
+void __painter_drawpixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
+	__binder_draw_pixel(painter->binder, x + painter->sys.x, y + painter->sys.y, color);
+}
+
+int painter_translate(Painter* painter, ssize_t x, ssize_t y) {
+	if (!painter) return 0;
 	painter->sys.x += x;
 	painter->sys.y += y;
+	return 1;
 }
 
-/* draw */
-void painter_draw_pixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
-	drawpixel(painter, x, y, color);
+int painter_draw_pixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
+	if (!painter) return 0;
+	__painter_drawpixel(painter, x, y, color);
+	return 1;
 }
 
-void painter_draw_rect(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
+int painter_draw_rect(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
+	if (!painter) return 0;
+
 	ssize_t i, j;
 
 	for (i = 0; i < ysz; ++i) {
 		for (j = 0; j < xsz; ++j) {
-			drawpixel(painter, x + j, y + i, color);
+			__painter_drawpixel(painter, x + j, y + i, color);
 		}
 	}
+
+	return 1;
 }
 
-void painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssize_t y2, uint32_t color) {	
+int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssize_t y2, uint32_t color) {
+	if (!painter) return 0;
+	
 	if (x1 == x2) {
 		if (y1 > y2) swap(y1, y2);
 		ssize_t i, ysz = y2 - y1;
 		for (i = 0; i < ysz; i++) {
-			drawpixel(painter, x1, i + y1, color);
+			__painter_drawpixel(painter, x1, i + y1, color);
 		}
 		return;
 	}
@@ -81,7 +129,7 @@ void painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssi
 		}
 		ssize_t xsz = x2 - x1;
 		for (; x < xsz; ++x) {
-			drawpixel(painter, x1 + x, y1 + y / xsz, color);
+			__painter_drawpixel(painter, x1 + x, y1 + y / xsz, color);
 			y += y2 - y1;
 		}
 	} else {
@@ -91,22 +139,12 @@ void painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssi
 		}
 		ssize_t ysz = y2 - y1;
 		for (; y < ysz; ++y) {
-			drawpixel(painter, x1 + x / ysz , y1 + y, color);
+			__painter_drawpixel(painter, x1 + x / ysz , y1 + y, color);
 			x += x2 - x1;
 		}
 	}
-}
 
-void painter_draw_font(Painter* painter, ssize_t x, ssize_t y, char ch, uint32_t color, uint32_t bgcolor) {
-	// unsigned char *font = fontdata_8x16 + 16 * (unsigned char)ch;
-	unsigned char *font = fontdata_8x16[(unsigned char)ch];
-	ssize_t r, c;
-
-	for (r = 0; r < 16; r++) {
-		for (c = 0; c < 8; c++) {
-			drawpixel(painter, x + c, y + r, ((font[r] >> (7 - c)) & 1 ? color : bgcolor));
-		}
-	}
+	return 1;
 }
 
 // void draw_circle(unsigned int (*buf)[1280], int x, int y, int r, unsigned int color) {
@@ -120,21 +158,131 @@ void painter_draw_font(Painter* painter, ssize_t x, ssize_t y, char ch, uint32_t
 // 	}
 // }
 
-// texter ======================================================================
+// texter ==============================================================================
 
-void texter_init(Texter* texter, Painter* painter) {
-	texter->painter = painter;
+/* cursor position(row and column) to painter coordinate(x and y) */
+static inline size_t row2y(size_t row) { return row * FONT_HEIGHT; }
+static inline size_t col2x(size_t col) { return col * FONT_WIDTH; }
 
+static inline
+void __draw_font(Texter* texter, size_t row, size_t col, char ch) {
+    ssize_t x = col2x(col), y = row2y(row);
+    uint32_t color = texter_get_font_color(texter);
+    uint32_t bgcolor = texter_get_background_color(texter);
+    unsigned char *font = fontdata_8x16[(uint8_t)ch];
+
+	ssize_t r, c;
+	for (r = 0; r < FONT_HEIGHT; r++) {
+		for (c = 0; c < FONT_WIDTH; c++) {
+			__binder_draw_pixel(texter->binder, x + c, y + r,
+                (font[r] >> (FONT_WIDTH - c - 1)) & 1 ? color : bgcolor);
+		}
+	}
+}
+
+static inline
+int __cursor_is_valid(Texter* texter) {
+	size_t width_round_up = texter->auto_newline ? 0 : FONT_WIDTH - 1;
+
+	size_t colum_size = (texter->binder->width + width_round_up) / FONT_WIDTH;
+	size_t row_size = (texter->binder->height + FONT_HEIGHT - 1) / FONT_HEIGHT;
+	return texter->cur.r < row_size && texter->cur.c < colum_size;
+}
+
+static inline
+int __cursor_next(Texter* texter) {
+	size_t row = texter->cur.r;
+	size_t col = texter->cur.c;
+
+	if (texter->auto_newline) {
+		size_t colum_size = texter->binder->width / FONT_WIDTH;
+		size_t row_size = (texter->binder->height + FONT_HEIGHT - 1) / FONT_HEIGHT;
+
+		if (col + 1 >= colum_size) {
+			if (row >= row_size) return 0;
+			texter->cur.r = row + 1;
+			texter->cur.c = 0;
+		} else {
+			texter->cur.c = col + 1;
+		}
+	} else {
+		size_t colum_size = (texter->binder->width + FONT_WIDTH - 1) / FONT_WIDTH;
+		if (col >= colum_size) return 0;
+		texter->cur.c = col + 1;
+	}
+
+	return 1;
+}
+
+int texter_init(Texter* texter, Binder* binder) {
+	if (!texter || !binder) return 0;
+	
+	texter->binder = binder;
+
+	/* cursor */
 	texter->cur.r = 0;
 	texter->cur.c = 0;
+
+	/* color */
+	texter->font_color = 0xFFFFFFFF;
+	texter->background_color = 0x00000000;
+
+	/* flags */
+	texter->auto_newline = 1;
+
+	return 1;
 }
 
-void texter_set_cursor(Texter* texter, ssize_t row, ssize_t col) {
+int texter_set_cursor(Texter* texter, size_t row, size_t col) {
+	if (!texter) return 0;
 	texter->cur.r = row;
 	texter->cur.c = col;
+	return 1;
 }
 
-void texter_move_cursor(Texter* texter, ssize_t row, ssize_t col) {
+int texter_move_cursor(Texter* texter, size_t row, size_t col) {
+	if (!texter) return 0;
 	texter->cur.r += row;
 	texter->cur.c += col;
+	return 1;
+}
+
+int texter_putc(Texter* texter, char c) {
+    if (!texter_drawc(texter, c)) return 0;
+    __cursor_next(texter);
+	return 1;
+}
+
+int texter_drawc(Texter* texter, char c) {
+    return texter_pos_drawc(texter, c, texter_get_row(texter), texter_get_column(texter));
+}
+
+int texter_pos_drawc(Texter* texter, char ch, size_t r, size_t c) {
+	if (!texter || !__cursor_is_valid(texter)) return 0;
+    __draw_font(texter, r, c, ch);
+	return 1;
+}
+
+ssize_t texter_write(Texter* texter, const char* buf, size_t count) {
+	if (!texter || !buf) return -1;
+
+	ssize_t cnt = 0;
+
+	while (count-- && texter_putc(texter, *buf++)) {
+		++cnt;
+	}
+
+	return cnt;
+}
+
+ssize_t texter_puts(Texter* texter, const char* str) {
+	if (!texter || !str) return -1;
+
+	ssize_t cnt = 0;
+
+	while (*str && texter_putc(texter, *str++)) {
+		++cnt;
+	}
+
+	return cnt;
 }
