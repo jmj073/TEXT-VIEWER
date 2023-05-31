@@ -21,11 +21,11 @@ TARGET := viewer
 
 default: $(TARGET)
 
-test: test.c draw.c framebuffer.c
+test: test.c draw.c framebuffer.c line_container.c
 	$(CC) $^ -o $@ -L. -lhdmi -lm $(CFLAGS) -L./libhdmi
 
 clean:
 	rm -f viewer test *.o
 
-$(TARGET): main.c draw.c framebuffer.c
+$(TARGET): main.c draw.c framebuffer.c line_container.c
 	$(CC) $^ -o $@ -L. -lhdmi -lm $(CFLAGS) -L./libhdmi

@@ -5,6 +5,11 @@
 #include <sys/types.h>
 #include "framebuffer.h"
 
+#define TEXTER_DEFAULT_FONT_WIDTH 8 // TODO
+#define TEXTER_DEFAULT_FONT_HEIGHT 16 // TODO
+#define TEXTER_DEFAULT_FONT_COLOR 0xFFFFFFFF
+#define TEXTER_DEFAULT_BACKGROUND_COLOR 0x00000000
+
 typedef struct Binder {
     FrameBuffer* fb;
     size_t x, y;
@@ -37,6 +42,13 @@ typedef struct Texter {
 // binder ================================================================
 
 int binder_init(Binder* binder, FrameBuffer* fb, size_t origin_x, size_t origin_y, size_t width, size_t height);
+
+int binder_fill(Binder* binder, uint32_t color);
+
+static inline
+int binder_clear(Binder* binder) {
+    return binder_fill(binder, 0x00000000);
+}
 
 static inline
 int binder_set_width(Binder* binder, size_t width) {
@@ -130,11 +142,22 @@ int texter_set_auto_newline(Texter* texter, uint8_t auto_newline) {
     texter->auto_newline = auto_newline;
     return 1;
 }
+static inline
+size_t texter_get_font_width(const Texter* texter) {
+    if (!texter) return 0;
+    return TEXTER_DEFAULT_FONT_WIDTH;
+}
+static inline
+size_t texter_get_font_height(const Texter* texter) {
+    if (!texter) return 0;
+    return TEXTER_DEFAULT_FONT_HEIGHT;
+}
 
 int texter_putc(Texter* texter, char c); // return: refer to fputc(3)
 int texter_drawc(Texter* texter, char c);
 int texter_pos_drawc(Texter* texter, char ch, size_t r, size_t c);
 ssize_t texter_write(Texter* texter, const char* buf, size_t count);
 ssize_t texter_puts(Texter* texter, const char* str);
+int texter_clear(Texter* texter);
 
 #endif /* _DRAW_H_ */

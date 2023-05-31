@@ -201,11 +201,11 @@ void test() { // texter bind test
 	}
 
 	Binder binder;
-	if (!binder_init(&binder, &fb, 100, 100, 84, 56)) {
+	if (!binder_init(&binder, &fb, 100, 100, 200, 500)) {
 		puts("binder init error");
 		return;
 	}
-
+	
 	Texter texter;
 	if (!texter_init(&texter, &binder)) {
 		puts("texter init error");
@@ -213,7 +213,7 @@ void test() { // texter bind test
 	}
 	// texter_set_auto_newline(&texter, 0);
 
-	ssize_t cnt = texter_puts(&texter, "hello, world! hi foo bar dsfdffdfdffsfsddsfdfdfd");
+	ssize_t cnt = texter_puts(&texter, "hello, world!\nhi foo bar\naaaaaaaaaaaaa\rbbb");
 	if (cnt < 0) {
 		puts("texter puts error!");
 	} else {

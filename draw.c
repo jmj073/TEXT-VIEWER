@@ -1,25 +1,20 @@
 #include "draw.h"
+
 #include <string.h> // memset
 #include <stdlib.h>
 
+#include "util.h"
 #include "font_data.h"
-
-#define swap(a, b) ({\
-	__typeof__(a) tmp = a;\
-	a = b;\
-	b = tmp;\
-	(void)0;\
-})
 
 // binder ==============================================================================
 
 /**
  * @brief 
  * 
- * @param canvas 
+ * @param binder 
  * @param fb 
- * @param x 
- * @param y 
+ * @param origin_x
+ * @param origin_y
  * @param width If 0, the default value is used
  * @param height If 0, the default value is used
  * @return int success: 1, fail: 0
@@ -35,6 +30,25 @@ int binder_init(Binder* binder, FrameBuffer* fb, size_t origin_x, size_t origin_
 	if (!binder_set_height(binder, height ?: fb->var.yres / 2)) return 0;
 
 	return 1;
+}
+
+int binder_fill(Binder* binder, uint32_t color) {
+	if (!binder) return 0;
+
+	ssize_t xloc = binder->x;
+	ssize_t yloc = binder->y;
+	ssize_t width = binder->fb->var.xres; // real width
+	// ssize_t height = painter->fb->var.yres;
+
+	uint32_t* buf = binder->fb->start;
+
+	size_t x, y;
+
+	for (y = 0; y < binder->height; ++y) {
+		for (x = 0; x < binder->width; ++x) {
+			buf[((yloc + y) * width) + (xloc + x)] = color;
+		}
+	}
 }
 
 static inline
@@ -94,7 +108,7 @@ int painter_draw_pixel(Painter* painter, ssize_t x, ssize_t y, uint32_t color) {
 	return 1;
 }
 
-int painter_draw_rect(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
+int painter_draw_fill_rect(Painter* painter, ssize_t x, ssize_t y, ssize_t xsz, ssize_t ysz, uint32_t color) {
 	if (!painter) return 0;
 
 	ssize_t i, j;
@@ -112,7 +126,7 @@ int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssiz
 	if (!painter) return 0;
 	
 	if (x1 == x2) {
-		if (y1 > y2) swap(y1, y2);
+		if (y1 > y2) _swap(y1, y2);
 		ssize_t i, ysz = y2 - y1;
 		for (i = 0; i < ysz; i++) {
 			__painter_drawpixel(painter, x1, i + y1, color);
@@ -124,8 +138,8 @@ int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssiz
 	
 	if (abs(x2 - x1) >= abs(y2 - y1)) {
 		if (x1 > x2) {
-			swap(x1, x2);
-			swap(y1, y2);
+			_swap(x1, x2);
+			_swap(y1, y2);
 		}
 		ssize_t xsz = x2 - x1;
 		for (; x < xsz; ++x) {
@@ -134,8 +148,8 @@ int painter_draw_line(Painter* painter, ssize_t x1, ssize_t y1, ssize_t x2, ssiz
 		}
 	} else {
 		if (y1 > y2) {
-			swap(x1, x2);
-			swap(y1, y2);
+			_swap(x1, x2);
+			_swap(y1, y2);
 		}
 		ssize_t ysz = y2 - y1;
 		for (; y < ysz; ++y) {
@@ -224,8 +238,8 @@ int texter_init(Texter* texter, Binder* binder) {
 	texter->cur.c = 0;
 
 	/* color */
-	texter->font_color = 0xFFFFFFFF;
-	texter->background_color = 0x00000000;
+	texter->font_color = TEXTER_DEFAULT_FONT_COLOR;
+	texter->background_color = TEXTER_DEFAULT_BACKGROUND_COLOR;
 
 	/* flags */
 	texter->auto_newline = 1;
@@ -294,4 +308,11 @@ ssize_t texter_puts(Texter* texter, const char* str) {
 	}
 
 	return cnt;
+}
+
+int texter_clear(Texter* texter) {
+	if (!texter) return 0;
+	Binder* binder = texter_get_binder(texter);
+	if (!binder_fill(binder, texter_get_background_color(texter))) return 0;
+	return texter_set_cursor(texter, 0, 0);
 }
