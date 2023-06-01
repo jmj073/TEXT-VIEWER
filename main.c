@@ -25,7 +25,7 @@
 
 static const char* FILE_NAME;
 static FrameBuffer framebuffer;
-static Binder file_name_binder;
+static Binder bottom_bar_binder;
 static Binder main_binder;
 
 // 키보드 이벤트를 처리하기 위한 함수, Non-Blocking 입력을 지원
@@ -108,15 +108,26 @@ void init_binder() {
 	size_t framebuffer_height = binder_get_height(&main_binder);
 	assert(binder_set_height(&main_binder, framebuffer_height - TEXTER_DEFAULT_FONT_HEIGHT * 2));
 
-	assert(binder_init(&file_name_binder, &framebuffer, 0,
+	assert(binder_init(&bottom_bar_binder, &framebuffer, 0,
 		framebuffer_height - TEXTER_DEFAULT_FONT_HEIGHT, 0, TEXTER_DEFAULT_FONT_HEIGHT));
 }
 
 static
-void print_file_name() {
+void print_bottom_bar(int percentage) {
 	Texter texter;
-	assert(texter_init(&texter, &file_name_binder));
+	assert(texter_init(&texter, &bottom_bar_binder));
+	assert(binder_fill(&bottom_bar_binder, TEXTER_DEFAULT_BACKGROUND_COLOR));
+
+	texter_puts(&texter, "file name: ");
 	texter_puts(&texter, FILE_NAME);
+	texter_puts(&texter, "     up: w     down: s     quit: q    ");
+	char buf[64];
+	sprintf(buf, "%3d%%", percentage);
+	texter_puts(&texter, buf);
+
+	Painter painter;
+	assert(painter_init(&painter, &bottom_bar_binder));
+	painter_draw_line(&painter, 0, 0, binder_get_width(&bottom_bar_binder) - 1, 0, 0xFFFFFF00);
 }
 
 static
@@ -140,7 +151,9 @@ void print_lines(const Line* first, const Line* last, size_t start_num) {
 static
 void event_loop(LineContainer container) {
 	size_t start_num = 1;
+
 	print_lines(cvector_begin(container), cvector_end(container), start_num);
+	print_bottom_bar(start_num * 100 / cvector_size(container));
 
 	int quit_flag = 0;
 
@@ -156,11 +169,11 @@ void event_loop(LineContainer container) {
 			case 'q':
 				quit_flag = 1;
 				break;
-			case 'd':
+			case 's':
 				start_num = _min(start_num + 1, cvector_size(container));
 				update_flag = 1;
 				break;
-			case 'u':
+			case 'w':
 				start_num = _max(start_num - 1, 1);
 				update_flag = 1;
 				break;
@@ -172,6 +185,7 @@ void event_loop(LineContainer container) {
 			Line* first = cvector_begin(container) + start_num - 1;
 			Line* last = cvector_end(container);
 			print_lines(first, last, start_num);
+			print_bottom_bar(start_num * 100 / cvector_size(container));
 		}
 	}
 }
@@ -180,7 +194,6 @@ static
 int run(LineContainer container) {
 	assert(display_init(&framebuffer));
 	init_binder();
-	print_file_name();
 
 	event_loop(container);
 
@@ -204,9 +217,7 @@ int main(int argc, const char** argv) {
 	}
 
 	LineContainer container = NULL;
-	if (file) {
-		container = line_container_from_file(file);
-	}
+	if (file) container = line_container_from_file(file);
 	if (!container) return 1;
 
 	if (!run(container)) {

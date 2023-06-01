@@ -8,6 +8,8 @@
 #ifndef CVECTOR_H_
 #define CVECTOR_H_
 
+#define CVECTOR_LOGARITHMIC_GROWTH
+
 #include <assert.h> /* for assert */
 #include <stdlib.h> /* for malloc/realloc/free */
 #include <string.h> /* for memcpy/memmove */

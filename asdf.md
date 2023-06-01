@@ -19,3 +19,4 @@
 + LineContainer를 linked list로 변경
 + double buffering 추가
 + 커서 추가
++ texter에 printf 추가
