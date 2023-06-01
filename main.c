@@ -128,9 +128,11 @@ void print_lines(const Line* first, const Line* last, size_t start_num) {
 	char buf[32];
 	const Line* it;
 	for (it = first; it < last; ++it) {
-		sprintf(buf, "%zd: ", start_num++);
-		if (texter_puts(&texter, buf) <= 0) break;
-		if (texter_write(&texter, *it, cvector_size(*it)) < cvector_size(*it)) break;
+		sprintf(buf, "%5zd: ", start_num++);
+		texter_set_font_color(&texter, 0xFF00FFFF);
+		texter_puts(&texter, buf);
+		texter_set_font_color(&texter, TEXTER_DEFAULT_FONT_COLOR);
+		texter_write(&texter, *it, cvector_size(*it));
 		if (!texter_putc(&texter, '\n')) break;
 	}
 }
@@ -138,7 +140,7 @@ void print_lines(const Line* first, const Line* last, size_t start_num) {
 static
 void event_loop(LineContainer container) {
 	size_t start_num = 1;
-	display_lines(cvector_begin(container), cvector_end(container), start_num);
+	print_lines(cvector_begin(container), cvector_end(container), start_num);
 
 	int quit_flag = 0;
 
@@ -154,11 +156,11 @@ void event_loop(LineContainer container) {
 			case 'q':
 				quit_flag = 1;
 				break;
-			case 'u':
+			case 'd':
 				start_num = _min(start_num + 1, cvector_size(container));
 				update_flag = 1;
 				break;
-			case 'd':
+			case 'u':
 				start_num = _max(start_num - 1, 1);
 				update_flag = 1;
 				break;
@@ -169,7 +171,7 @@ void event_loop(LineContainer container) {
 		if (update_flag) {
 			Line* first = cvector_begin(container) + start_num - 1;
 			Line* last = cvector_end(container);
-			display_lines(first, last, start_num);
+			print_lines(first, last, start_num);
 		}
 	}
 }

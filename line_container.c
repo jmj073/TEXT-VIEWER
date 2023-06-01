@@ -22,9 +22,9 @@ LineContainer line_container_from_file(FILE* file) {
 
     LineContainer container = NULL;
 
-    Line line = NULL;
-
-    while (line = __get_line(file)) {
+    while (1) {
+        Line line = __get_line(file);
+        if (feof(file)) break;
         cvector_push_back(container, line);
     }
 
