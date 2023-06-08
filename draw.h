@@ -158,6 +158,7 @@ int texter_drawc(Texter* texter, char c);
 int texter_pos_drawc(Texter* texter, char ch, size_t r, size_t c);
 ssize_t texter_write(Texter* texter, const char* buf, size_t count);
 ssize_t texter_puts(Texter* texter, const char* str);
+ssize_t texter_printf(Texter* texter, const char* fmt, ...);
 int texter_clear(Texter* texter);
 
 #endif /* _DRAW_H_ */

@@ -118,12 +118,8 @@ void print_bottom_bar(int percentage) {
 	assert(texter_init(&texter, &bottom_bar_binder));
 	assert(binder_fill(&bottom_bar_binder, TEXTER_DEFAULT_BACKGROUND_COLOR));
 
-	texter_puts(&texter, "file name: ");
-	texter_puts(&texter, FILE_NAME);
-	texter_puts(&texter, "     up: w     down: s     quit: q    ");
-	char buf[64];
-	sprintf(buf, "%3d%%", percentage);
-	texter_puts(&texter, buf);
+	texter_printf(&texter, "file name: %s    up: w    down: s    quit: q    %3d%%",
+		FILE_NAME, percentage);
 
 	Painter painter;
 	assert(painter_init(&painter, &bottom_bar_binder));

@@ -1,7 +1,10 @@
 #include "draw.h"
 
+#include <stdarg.h>
+#include <stdio.h> // for texter_printf
 #include <string.h> // memset
 #include <stdlib.h>
+#include <assert.h>
 
 #include "util.h"
 #include "font_data.h"
@@ -49,6 +52,8 @@ int binder_fill(Binder* binder, uint32_t color) {
 			buf[((yloc + y) * width) + (xloc + x)] = color;
 		}
 	}
+
+	return 1;
 }
 
 static inline
@@ -308,6 +313,21 @@ ssize_t texter_puts(Texter* texter, const char* str) {
 	}
 
 	return cnt;
+}
+
+ssize_t texter_printf(Texter* texter, const char* fmt, ...) {
+	if (!texter) return -1;
+	
+	char buf[1024];
+	va_list ap;
+	va_start(ap, &fmt);
+	int ret = vsnprintf(buf, sizeof(buf), fmt, ap); // TODO
+	va_end(ap);
+
+	if (ret < 0) return (ssize_t)ret;
+	assert(ret != sizeof(buf));
+
+	return texter_puts(texter, buf);
 }
 
 int texter_clear(Texter* texter) {
